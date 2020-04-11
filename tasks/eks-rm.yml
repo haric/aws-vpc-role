@@ -1,0 +1,139 @@
+---
+# Gather information about all instances
+- ec2_instance_info:
+    region: "{{ region }}"
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"   
+    filters:
+      tag:code_name: "{{ code_name }}"  
+  register: ec2
+
+- name: Terminate instances that were previously launched
+  ec2:
+    region: "{{ region }}"
+    state: 'absent'
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"     
+    instance_ids: "{{ item.instance_id }}"
+  loop: "{{ ec2.instances }}"
+
+- name: get net info
+  ec2_vpc_net_info:
+    region: "{{ region }}"
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"    
+    filters:
+      tag:Name: "{{ vpc_name }}"
+  register: vpc
+
+- name: delete route table
+  ec2_vpc_route_table:
+    region: "{{ region }}"
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"    
+    state: absent
+    tags:
+      code_name: "{{ code_name }}" 
+    lookup: tag
+    state: absent  
+    vpc_id:  "{{ item.id }}"
+  loop: "{{ vpc.vpcs }}"  
+
+- name: get rt info
+  ec2_vpc_route_table_info:
+    region: "{{ region }}"
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"    
+    filters:
+      vpc-id: "{{ item.id }}"
+  loop: "{{ vpc.vpcs }}"
+  register: rt
+
+- name: delete route table
+  ec2_vpc_route_table:
+    vpc_id: "{{ item.vpc_id }}"
+    region: "{{ region }}"
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"    
+    route_table_id: "{{ item.id }}"
+    lookup: id
+    state: absent
+  loop: "{{ rt.results[0].route_tables }}"  
+
+- name: Remove igw 
+  ec2_vpc_igw:
+    region: "{{ region }}"
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"   
+    state: absent
+    vpc_id:  "{{ item.id }}"
+  loop: "{{ vpc.vpcs }}"
+
+
+- name: Remove pub subnet
+  ec2_vpc_subnet:
+    region: "{{ region }}"
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"   
+    state: absent
+    vpc_id:  "{{ item.id }}"
+    cidr: "{{ subnet_cidr_public }}" 
+  loop: "{{ vpc.vpcs }}"
+
+- name: Remove other subnet
+  ec2_vpc_subnet:
+    region: "{{ region }}"
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"   
+    state: absent
+    vpc_id:  "{{ item.id }}"
+    cidr: "{{ subnet_cidr_private }}" 
+  loop: "{{ vpc.vpcs }}"
+
+# Retrieve default Network ACLs:
+# - name: Get Default NACLs
+#   register: default_nacls
+#   ec2_vpc_nacl_info:
+#     region: "{{ region }}"
+#     aws_access_key: "{{ aws_access_key }}"
+#     aws_secret_key: "{{ aws_secret_key }}" 
+#   register: nacl
+
+
+# - name: "Remove the NACL subnet associations and tags"
+#   ec2_vpc_nacl:
+#     region: "{{ region }}"
+#     aws_access_key: "{{ aws_access_key }}"
+#     aws_secret_key: "{{ aws_secret_key }}"   
+#     state: absent  
+#     nacl_id:  "{{ item.nacl_id }}"
+#   loop: "{{ nacl.nacls }}"
+
+# Gather information about a particular VPC using VPC ID
+
+# - name: delete route table
+#   ec2_vpc_route_table:
+#     region: "{{ region }}"
+#     aws_access_key: "{{ aws_access_key }}"
+#     aws_secret_key: "{{ aws_secret_key }}"    
+#     state: absent
+#     purge_routes: yes
+#     purge_subnets: yes
+#     purge_tags: yes
+#     vpc_id:  "{{ item.id }}"
+#   loop: "{{ vpc.vpcs }}"
+#   register: rt
+
+
+# The Internet Gateway ID is can be accessed via {{igw.gateway_id}} for use in setting up NATs etc.
+
+
+- name: DELETE THE VPC
+  ec2_vpc_net:   
+    name: "{{ vpc_name }}"
+    region: "{{ region }}"
+    cidr_block: "{{ vpc_cidr }}"
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"     
+    state: absent  
+    purge_cidrs: yes

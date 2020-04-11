@@ -1,0 +1,29 @@
+---
+# vars file for aws-vpc
+code_name: sparrow
+aws_access_key: "AKIA6MD2GXDDQTNMMMC2"
+aws_secret_key: "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"
+region: "us-east-1"
+ 
+# VPC
+vpc_cidr: 
+  - 10.10.0.0/24
+  - 10.20.0.0/24
+vpc_name: "BOXES EKS VPC"
+ 
+# Subnet
+subnet_name: "BOXES EKS Subnet"
+subnet_cidr_public: 10.10.0.0/26
+subnet_cidr_private: 10.20.0.0/26
+
+# Internet Gateway Name
+igw_name: "Traffic IGW"
+route_name: "primary"
+ 
+securitygroup_name: "BOXES EKS Security Group"
+ 
+ec2_tag: "WebServer"
+ 
+#The local path to which we would save our EC2 Private Key
+ec2_key_directory: /tmp/
+keypair_name: "ec2_key_pair"

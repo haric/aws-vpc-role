@@ -1,0 +1,13 @@
+---
+- hosts: localhost
+#  roles:
+#     - { role: vpc, x: 42 }
+  vars_files:
+    - vars/main.yml
+
+  tasks:
+#    - name: 'setup aws'
+#      include: tasks/aws.yml
+
+    - name: 'aws vpc tasks'
+      include: tasks/eks-rm.yml

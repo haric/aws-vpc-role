@@ -1,0 +1,26 @@
+---
+# Example of role with custom trust policy for Lambda service
+- name: Create IAM role with custom trust relationship
+  iam:
+    iam_type: role
+    name: my_eks_role
+    state: present
+    trust_policy:
+      Version: '2012-10-17'
+      Statement:
+      - Action: sts:AssumeRole
+        Effect: Allow
+        Principal:
+          Service: EKS
+
+- name: Create an EKS cluster
+  aws_eks_cluster:
+    name: "{{ vpc_name }}"
+    role_arn: my_eks_role
+    subnets:
+      - "{{ subnet_name }}_public"
+      - "{{ subnet_name }}_private"
+    security_groups:
+      - my_eks_sg
+      - Web DMZ
+  register: caller_facts

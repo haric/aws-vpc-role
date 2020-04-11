@@ -1,0 +1,20 @@
+---
+# Install multi python packages with version specifiers
+- name: Install pip dependencies 
+  pip:
+    name:
+      - boto3
+
+- name: Unarchive a file that needs to be downloaded (added in 2.0)
+  unarchive:
+    src: https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
+    dest: /tmp/
+    remote_src: yes
+  become: yes
+
+# You can also use the 'cmd' parameter instead of free form format.
+- name: This command will change the working directory to somedir/.
+  shell:
+    cmd: ./aws/install
+    chdir: /tmp
+  become: yes
