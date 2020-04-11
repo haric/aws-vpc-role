@@ -13,14 +13,36 @@
         Principal:
           Service: EKS
 
+# update the CIDR address in the SSH port section. 
+- name: Create Security Group
+  ec2_group:
+    name: Web DMZ
+    description: DMZ Security Group
+    vpc_id: "{{ vpc.vpc.id }}"
+    region: "{{ region }}"
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    rules:
+      - proto: tcp
+        ports:
+        - 80
+        cidr_ip: 0.0.0.0/0
+      - proto: tcp
+        ports:
+        - 22
+        cidr_ip: 0.0.0.0/0
+    tags:
+      code_name: "{{ code_name }}"        
+  register: security_group
+
+
 - name: Create an EKS cluster
   aws_eks_cluster:
-    name: "{{ vpc_name }}"
+    name: "{{ vpc_name }}_eks"
     role_arn: my_eks_role
     subnets:
       - "{{ subnet_name }}_public"
       - "{{ subnet_name }}_private"
     security_groups:
-      - my_eks_sg
       - Web DMZ
   register: caller_facts

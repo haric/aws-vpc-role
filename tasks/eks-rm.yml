@@ -1,4 +1,29 @@
 ---
+- name: Remove an EKS cluster
+  aws_eks_cluster:
+    name: "{{ vpc_name }}_eks"
+    region: "{{ region }}"
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"   
+    wait: yes
+    state: absent
+
+- name: Delete the role
+  iam_role:
+    name: my_eks_role
+    region: "{{ region }}"
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"   
+    state: absent
+
+- name: "Delete group by its id"
+  ec2_group:
+    name: Web DMZ
+    region: "{{ region }}"
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    state: absent    
+
 # Gather information about all instances
 - ec2_instance_info:
     region: "{{ region }}"
@@ -15,6 +40,7 @@
     aws_access_key: "{{ aws_access_key }}"
     aws_secret_key: "{{ aws_secret_key }}"     
     instance_ids: "{{ item.instance_id }}"
+    wait: yes
   loop: "{{ ec2.instances }}"
 
 - name: get net info
