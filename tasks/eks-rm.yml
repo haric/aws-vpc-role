@@ -1,7 +1,7 @@
 ---
 - name: Remove an EKS cluster
   aws_eks_cluster:
-    name: "{{ vpc_name }}_eks"
+    name: "{{ code_name }}_eks"
     region: "{{ region }}"
     aws_access_key: "{{ aws_access_key }}"
     aws_secret_key: "{{ aws_secret_key }}"   
@@ -10,19 +10,11 @@
 
 - name: Delete the role
   iam_role:
-    name: my_eks_role
+    name:  "{{ eks_service_role }}"
     region: "{{ region }}"
     aws_access_key: "{{ aws_access_key }}"
     aws_secret_key: "{{ aws_secret_key }}"   
     state: absent
-
-- name: "Delete group by its id"
-  ec2_group:
-    name: Web DMZ
-    region: "{{ region }}"
-    aws_access_key: "{{ aws_access_key }}"
-    aws_secret_key: "{{ aws_secret_key }}"
-    state: absent    
 
 # Gather information about all instances
 - ec2_instance_info:
@@ -42,6 +34,14 @@
     instance_ids: "{{ item.instance_id }}"
     wait: yes
   loop: "{{ ec2.instances }}"
+
+- name: "Delete group by its id"
+  ec2_group:
+    name: Web DMZ
+    region: "{{ region }}"
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    state: absent    
 
 - name: get net info
   ec2_vpc_net_info:
@@ -65,6 +65,48 @@
     vpc_id:  "{{ item.id }}"
   loop: "{{ vpc.vpcs }}"  
 
+- name: List all managed nat gateways in 
+  ec2_vpc_nat_gateway_info:
+    region: "{{ region }}"
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"    
+  register: all_ngws  
+
+- name: Debugging the result
+  debug:
+    msg: "{{ all_ngws.result }}"  
+
+- name: Delete nat gateway using discovered nat gateways from facts module.
+  ec2_vpc_nat_gateway:
+    state: absent
+    region: "{{ region }}"
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"    
+    wait: yes
+    nat_gateway_id: "{{ item.nat_gateway_id }}"
+    release_eip: yes  
+  loop: "{{ all_ngws.result }}"  
+
+- name: Remove pub subnet
+  ec2_vpc_subnet:
+    region: "{{ region }}"
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"   
+    state: absent
+    vpc_id:  "{{ item.id }}"
+    cidr: "{{ subnet_cidr_public }}" 
+  loop: "{{ vpc.vpcs }}"
+
+- name: Remove other subnet
+  ec2_vpc_subnet:
+    region: "{{ region }}"
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"   
+    state: absent
+    vpc_id:  "{{ item.id }}"
+    cidr: "{{ subnet_cidr_private }}" 
+  loop: "{{ vpc.vpcs }}"
+
 - name: get rt info
   ec2_vpc_route_table_info:
     region: "{{ region }}"
@@ -74,6 +116,7 @@
       vpc-id: "{{ item.id }}"
   loop: "{{ vpc.vpcs }}"
   register: rt
+
 
 - name: delete route table
   ec2_vpc_route_table:
@@ -95,26 +138,6 @@
     vpc_id:  "{{ item.id }}"
   loop: "{{ vpc.vpcs }}"
 
-
-- name: Remove pub subnet
-  ec2_vpc_subnet:
-    region: "{{ region }}"
-    aws_access_key: "{{ aws_access_key }}"
-    aws_secret_key: "{{ aws_secret_key }}"   
-    state: absent
-    vpc_id:  "{{ item.id }}"
-    cidr: "{{ subnet_cidr_public }}" 
-  loop: "{{ vpc.vpcs }}"
-
-- name: Remove other subnet
-  ec2_vpc_subnet:
-    region: "{{ region }}"
-    aws_access_key: "{{ aws_access_key }}"
-    aws_secret_key: "{{ aws_secret_key }}"   
-    state: absent
-    vpc_id:  "{{ item.id }}"
-    cidr: "{{ subnet_cidr_private }}" 
-  loop: "{{ vpc.vpcs }}"
 
 # Retrieve default Network ACLs:
 # - name: Get Default NACLs

@@ -1,26 +1,31 @@
 ---
 # vars file for aws-vpc
 code_name: sparrow
-aws_access_key: "AKIA6MD2GXDDQTNMMMC2"
-aws_secret_key: "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"
+aws_account_id: 988098771143
+aws_access_key: "AKIA6MD2GXDDR6QD7NEX"
+aws_secret_key: "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"
 region: "us-east-1"
+eks_service_role: "{{ code_name }}-eks-service-role"
+iam_user: admin
  
 # VPC
 vpc_cidr: 
   - 10.10.0.0/24
   - 10.20.0.0/24
-vpc_name: "BOXES EKS VPC"
+vpc_name: "BOXES_EKS_VPC"
  
 # Subnet
-subnet_name: "BOXES EKS Subnet"
+subnet_name: "{{ vpc_name }}_Subnet"
 subnet_cidr_public: 10.10.0.0/26
+subnet_az_public: us-east-1b
 subnet_cidr_private: 10.20.0.0/26
+subnet_az_private: us-east-1f
 
 # Internet Gateway Name
-igw_name: "Traffic IGW"
+igw_name: "Traffic_IGW"
 route_name: "primary"
  
-securitygroup_name: "BOXES EKS Security Group"
+securitygroup_name: "BOXES_EKS_Security_Group"
  
 ec2_tag: "WebServer"
  

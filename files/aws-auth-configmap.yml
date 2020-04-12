@@ -1,0 +1,25 @@
+Name:         aws-auth
+Namespace:    kube-system
+Labels:       <none>
+Annotations:  <none>
+
+Data
+====
+mapRoles:
+----
+- groups:
+  - system:bootstrappers
+  - system:nodes
+  rolearn: arn:aws:iam::988098771143:role/eksctl-amazing-sculpture-15867092-NodeInstanceRole-1CX2O3QAPRH2N
+  username: system:node:{{EC2PrivateDNSName}}
+
+mapUsers:
+----
+  - userarn: arn:aws:iam::555555555555:user/admin
+    username: admin
+    groups:
+      - system:masters
+  - userarn: arn:aws:iam::111122223333:user/ops-user
+    username: ops-user
+    groups:
+      - system:masters

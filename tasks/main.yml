@@ -18,6 +18,7 @@
    state: present
    vpc_id: "{{ vpc.vpc.id }}"
    region: "{{ region }}"
+   az: "{{ subnet_az_public }}"
    cidr: "{{ subnet_cidr_public }}"
    aws_access_key: "{{ aws_access_key }}"
    aws_secret_key: "{{ aws_secret_key }}"
@@ -35,6 +36,7 @@
    state: present
    vpc_id: "{{ vpc.vpc.id }}"
    region: "{{ region }}"
+   az: "{{ subnet_az_private }}"
    cidr: "{{ subnet_cidr_private }}"
    aws_access_key: "{{ aws_access_key }}"
    aws_secret_key: "{{ aws_secret_key }}"
@@ -58,6 +60,17 @@
      Name: "{{ igw_name }}"
      code_name: "{{ code_name }}"
   register: igw  
+
+- name: Create new nat gateway and allocate new EIP if a nat gateway does not yet exist in the subnet.
+  ec2_vpc_nat_gateway:
+    state: present
+    region: "{{ region }}"
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    subnet_id: "{{ subnet_1.subnet.id }}"
+    wait: yes
+    if_exist_do_not_create: true
+  register: new_nat_gateway  
 
 - name: Route IGW
   ec2_vpc_route_table:
@@ -103,21 +116,25 @@
   when: keypair.changed == true
   become: yes
   register: c
- 
-- name: Create EC2 server
-  ec2:
-    image: ami-467ca739
-    wait: yes
-    instance_type: t2.micro
+
+# update the CIDR address in the SSH port section. 
+- name: Create Security Group
+  ec2_group:
+    name: Web DMZ
+    description: DMZ Security Group
+    vpc_id: "{{ vpc.vpc.id }}"
     region: "{{ region }}"
-    group_id: "{{ security_group.group_id }}"
-    vpc_subnet_id: "{{ subnet_1.subnet.id }}"
-    key_name: "{{ keypair.key.name  }}"
-    count_tag:
-      Name: apacheserver
-    instance_tags:
-        db: postgres
-        code_name: "{{ code_name }}"       
-    exact_count: 1
     aws_access_key: "{{ aws_access_key }}"
     aws_secret_key: "{{ aws_secret_key }}"
+    rules:
+      - proto: tcp
+        ports:
+        - 80
+        cidr_ip: 0.0.0.0/0
+      - proto: tcp
+        ports:
+        - 22
+        cidr_ip: 0.0.0.0/0
+    tags:
+      code_name: "{{ code_name }}"        
+  register: security_group  

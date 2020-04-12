@@ -11,3 +11,6 @@
 
     - name: 'aws vpc tasks'
       include: tasks/main.yml
+
+    - name: 'aws eks tasks'
+      include: tasks/eks.yml      
