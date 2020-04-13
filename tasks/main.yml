@@ -67,7 +67,7 @@
     region: "{{ region }}"
     aws_access_key: "{{ aws_access_key }}"
     aws_secret_key: "{{ aws_secret_key }}"
-    subnet_id: "{{ subnet_1.subnet.id }}"
+    subnet_id: "{{ subnet_2.subnet.id }}"
     wait: yes
     if_exist_do_not_create: true
   register: new_nat_gateway  
@@ -120,7 +120,7 @@
 # update the CIDR address in the SSH port section. 
 - name: Create Security Group
   ec2_group:
-    name: Web DMZ
+    name: "{{ securitygroup_name }}"
     description: DMZ Security Group
     vpc_id: "{{ vpc.vpc.id }}"
     region: "{{ region }}"
