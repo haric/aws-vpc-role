@@ -138,3 +138,7 @@
     tags:
       code_name: "{{ code_name }}"        
   register: security_group  
+
+- name: added in 2.4, previously you used 'include'
+  import_tasks: eks.yml
+  when: eks_cluster is defined
