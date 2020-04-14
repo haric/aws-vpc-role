@@ -97,7 +97,7 @@
     region: "{{ region }}"
     aws_access_key: "{{ aws_access_key }}"
     aws_secret_key: "{{ aws_secret_key }}"    
-    name: "{{ code_name }}_eks"
+    name: "{{ code_name }}-eks"
     role_arn: "{{ role.role_result.arn }}"
     wait: yes
 #    ec2_url: "{{ ec2.instances[0].public_dns_name }}"
@@ -111,9 +111,9 @@
 - debug:
     var: eks
 
-- name: create a stack for node group
+- name: create a eks stack
   cloudformation:
-    stack_name: "{{ code_name }}-cloudformation"
+    stack_name: "{{ eks.name }}-cfn"
     region: "{{ region }}"
     aws_access_key: "{{ aws_access_key }}"
     aws_secret_key: "{{ aws_secret_key }}" 
@@ -122,11 +122,23 @@
     template_format: yaml
     template_body:
       Resources:
+        # myCluster:
+        #   Type: 'AWS::EKS::Cluster'
+        #   Properties:
+        #     Name: "{{ code_name }}_eks"
+        #     RoleArn: >-
+        #       "{{ role.role_result.arn }}"
+        #     ResourcesVpcConfig:
+        #       SecurityGroupIds:
+        #         - "{{ security_group.group_id }}"
+        #       SubnetIds:
+        #         - "{{ subnet_1.subnet.id }}"
+        #         - "{{ subnet_2.subnet.id }}"
         EKSNodegroup:
           Type: 'AWS::EKS::Nodegroup'
           Properties:
-            ClusterName: "{{ code_name }}_eks"
-            NodegroupName: "{{ code_name }}_node_group"
+            ClusterName: "{{ eks.name }}"
+            NodegroupName: "{{ eks.name }}_node_group"
             NodeRole: "{{ worker_role.role_result.arn }}"
             ScalingConfig:
               MinSize: 1
@@ -158,5 +170,5 @@
 - name: update kubeconfig
   shell: |
       aws eks --region {{ region }} update-kubeconfig --kubeconfig ./{{ code_name }}-config.yml --name {{ eks.name }}
-  when: eks is not skipped
+  when: cfn is not skipped
 

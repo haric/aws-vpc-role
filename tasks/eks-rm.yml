@@ -4,7 +4,7 @@
     region: "{{ region }}"
     aws_access_key: "{{ aws_access_key }}"
     aws_secret_key: "{{ aws_secret_key }}" 
-    stack_name: "{{ code_name }}-cloudformation"
+    stack_name: "{{ code_name }}-eks-cfn"
     state: "absent"
 
 # - name: Delete node group
@@ -16,7 +16,7 @@
 
 - name: Remove an EKS cluster
   aws_eks_cluster:
-    name: "{{ code_name }}_eks"
+    name: "{{ code_name }}-eks"
     region: "{{ region }}"
     aws_access_key: "{{ aws_access_key }}"
     aws_secret_key: "{{ aws_secret_key }}"   
