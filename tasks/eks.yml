@@ -26,6 +26,23 @@
   register: role  
 
 
+- name: Create IAM role with custom trust relationship
+  iam:
+    iam_type: role
+    name: "{{ eks_worker_role }}"
+    state: present
+    region: "{{ region }}"
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}" 
+    trust_policy:
+      Version: '2012-10-17'
+      Statement:
+        - Action: sts:AssumeRole
+          Effect: Allow
+          Principal:
+            Service: ec2.amazonaws.com
+  register: worker_role  
+
 - name: attach policy to role
   shell: |
       aws configure set aws_access_key_id {{ aws_access_key }}
@@ -34,8 +51,11 @@
       aws iam tag-role --tags '{"Key": "kubernetes.io/cluster/{{ vpc_name }}", "Value": "shared" } ' --role-name {{ eks_service_role }}
       aws iam attach-role-policy --policy-arn arn:aws:iam::aws:policy/AmazonEKSServicePolicy --role-name {{ eks_service_role }}
       aws iam attach-role-policy --policy-arn arn:aws:iam::aws:policy/AmazonEKSClusterPolicy --role-name {{ eks_service_role }}
-      aws iam create-instance-profile --instance-profile-name {{ code_name }}-ec2-Instance-Profile
-      aws iam add-role-to-instance-profile --instance-profile-name {{ code_name }}-ec2-Instance-Profile --role-name {{ eks_service_role }}
+      aws iam attach-role-policy --policy-arn arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy --role-name {{ eks_worker_role }}
+      aws iam attach-role-policy --policy-arn arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy --role-name {{ eks_worker_role }}
+      aws iam attach-role-policy --policy-arn arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly --role-name {{ eks_worker_role }}
+      aws iam create-instance-profile --instance-profile-name {{ code_name }}_ec2_Instance_Profile
+      aws iam add-role-to-instance-profile --instance-profile-name {{ code_name }}_ec2_Instance_Profile --role-name {{ eks_worker_role }}
 
 ##      aws eks create-cluster --name {{ code_name }}_eks --role-arn {{ role.role_result.arn }} --resources-vpc-config subnetIds={{ subnet_1.subnet.id }},{{ subnet_2.subnet.id }},securityGroupIds={{ security_group.group_id }}
 
@@ -51,6 +71,7 @@
     key_name: "{{ keypair.key.name  }}"
     count_tag:
       Name: apacheserver
+#    instance_profile_name: "{{ code_name }}_ec2_Instance_Profile"
     instance_tags:
         db: postgres
         code_name: "{{ code_name }}"    
@@ -67,6 +88,10 @@
 - debug:
     var: ec2
 
+- name: attach profile
+  shell: |
+       aws ec2 associate-iam-instance-profile --region {{ region }}  --instance-id {{ ec2.instances[0].id }} --iam-instance-profile Name={{ code_name }}_ec2_Instance_Profile   
+
 - name: Create an EKS cluster
   aws_eks_cluster:
     region: "{{ region }}"
@@ -75,26 +100,47 @@
     name: "{{ code_name }}_eks"
     role_arn: "{{ role.role_result.arn }}"
     wait: yes
+#    ec2_url: "{{ ec2.instances[0].public_dns_name }}"
     subnets:
       - "{{ subnet_1.subnet.id }}"
       - "{{ subnet_2.subnet.id }}"
     security_groups:
       - "{{ security_group.group_id }}"
-  register: caller_facts
+  register: eks
 
-# - name: create a stack, specify role that cloudformation assumes
-#   cloudformation:
-#     stack_name: "{{ code_name }}-cloudformation"
-#     region: "{{ region }}"
-#     aws_access_key: "{{ aws_access_key }}"
-#     aws_secret_key: "{{ aws_secret_key }}" 
-#     state: "present"
-#     disable_rollback: true
-#     template: "files/service-role.yml"
-#   register: role
+- debug:
+    var: eks
 
-# - debug:
-#     var: role
+- name: create a stack for node group
+  cloudformation:
+    stack_name: "{{ code_name }}-cloudformation"
+    region: "{{ region }}"
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}" 
+    state: "present"
+    disable_rollback: true
+    template_format: yaml
+    template_body:
+      Resources:
+        EKSNodegroup:
+          Type: 'AWS::EKS::Nodegroup'
+          Properties:
+            ClusterName: "{{ code_name }}_eks"
+            NodegroupName: "{{ code_name }}_node_group"
+            NodeRole: "{{ worker_role.role_result.arn }}"
+            ScalingConfig:
+              MinSize: 1
+              DesiredSize: 2
+              MaxSize: 3
+            Labels:
+              code_name: "{{ code_name }}"
+            Subnets:
+              - "{{ subnet_1.subnet.id }}"
+              - "{{ subnet_2.subnet.id }}"
+  register: cfn
+
+- debug:
+    var: cfn
 
 
 # Basic role example
@@ -111,5 +157,6 @@
 
 - name: update kubeconfig
   shell: |
-      aws eks --region {{ region }} update-kubeconfig --kubeconfig ./{{ code_name }}-config.yml --name {{ caller_facts.name }}
+      aws eks --region {{ region }} update-kubeconfig --kubeconfig ./{{ code_name }}-config.yml --name {{ eks.name }}
+  when: eks is not skipped
 

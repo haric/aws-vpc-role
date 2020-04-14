@@ -1,4 +1,19 @@
 ---
+- name: delete a stack
+  cloudformation:
+    region: "{{ region }}"
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}" 
+    stack_name: "{{ code_name }}-cloudformation"
+    state: "absent"
+
+# - name: Delete node group
+#   shell: |
+#       aws configure set aws_access_key_id {{ aws_access_key }}
+#       aws configure set aws_secret_access_key {{ aws_secret_key }}
+#       aws configure set default.region {{ region }}
+#       aws eks --region {{ region }} delete-nodegroup --cluster-name {{ code_name }}_eks --nodegroup-name {{ code_name }}_eks_node_group
+
 - name: Remove an EKS cluster
   aws_eks_cluster:
     name: "{{ code_name }}_eks"
@@ -10,11 +25,14 @@
 
 - name: Delete the role
   iam_role:
-    name:  "{{ eks_service_role }}"
+    name:  "{{ item }}"
     region: "{{ region }}"
     aws_access_key: "{{ aws_access_key }}"
     aws_secret_key: "{{ aws_secret_key }}"   
     state: absent
+  loop:
+    - "{{ eks_service_role }}"
+    - "{{ eks_worker_role }}"
 
 # Gather information about all instances
 - ec2_instance_info:
@@ -37,7 +55,7 @@
 
 - name: "Delete group by its id"
   ec2_group:
-    name: Web DMZ
+    name: "{{ securitygroup_name }}"
     region: "{{ region }}"
     aws_access_key: "{{ aws_access_key }}"
     aws_secret_key: "{{ aws_secret_key }}"
@@ -52,6 +70,13 @@
       tag:Name: "{{ vpc_name }}"
   register: vpc
 
+- name: remove profiles
+  shell: |
+      aws configure set aws_access_key_id {{ aws_access_key }}
+      aws configure set aws_secret_access_key {{ aws_secret_key }}
+      aws configure set default.region {{ region }}  
+      aws iam delete-instance-profile --instance-profile-name {{ code_name }}_ec2_Instance_Profile
+
 - name: delete route table
   ec2_vpc_route_table:
     region: "{{ region }}"
@@ -60,8 +85,7 @@
     state: absent
     tags:
       code_name: "{{ code_name }}" 
-    lookup: tag
-    state: absent  
+    lookup: tag 
     vpc_id:  "{{ item.id }}"
   loop: "{{ vpc.vpcs }}"  
 
