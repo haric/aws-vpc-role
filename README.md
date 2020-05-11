@@ -16,13 +16,15 @@ Role Variables
 
 A description of the settable variables for this role are mentioned here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Variables may also be sourced from other roles and/or the global scope (ie. hostvars, group vars, etc.).
 
-| Table | Name | Description | Required [y/N] |
-| ___: | :____ | :___________ | :_____________: |
+| #        | Role variable           | Description  | Required [y/N] |
+| ------------- |:-------------:| -----:| ------ |
 | 1 | code_name | Short name for the VPC | Y | 
 | 2 | aws_account_id | AWS account id | Y |
 | 3 | aws_access_key | AWS access key | Y |
 | 4 | aws_secret_key | AWS secret key | Y |
 | 5 | eks_cluster | `yes/no`.  When yes, sets up a EKS cluster with the VPC. |  |
+
+
 
 
 

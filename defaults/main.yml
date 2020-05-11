@@ -1,5 +1,7 @@
 ---
 # defaults file for aws-vpc
+code_name: sparrow
+region: "us-east-1"
 eks_service_role: "{{ code_name }}-eks-service-role"
 eks_worker_role: "{{ code_name }}-eks-worker-role"
 iam_user: admin
