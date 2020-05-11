@@ -1,9 +1,6 @@
 ---
 # defaults file for aws-vpc
 code_name: sparrow
-aws_account_id: 988098771143
-aws_access_key: "AKIA6MD2GXDDR6QD7NEX"
-aws_secret_key: "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"
 region: "us-east-1"
 eks_service_role: "{{ code_name }}-eks-service-role"
 eks_worker_role: "{{ code_name }}-eks-worker-role"
