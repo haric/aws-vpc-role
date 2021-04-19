@@ -114,7 +114,6 @@
 - name: Copy EC2 Private Key locally so it can be later on used to SSH into the instance
   copy: content="{{ keypair.key.private_key }}" dest={{ ec2_key_directory }}{{ code_name }}_ec2_keypair.ppk
   when: keypair.changed == true
-  become: yes
   register: c
 
 # update the CIDR address in the SSH port section. 
